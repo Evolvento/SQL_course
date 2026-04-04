@@ -82,14 +82,14 @@ WHERE mine_id = 1
   AND date_id BETWEEN 20240101 AND 20240131;
 
 SELECT
-    stxname,
-    stxkeys,
-    stxkind,
-    stxdndistinct,
-    stxddependencies
-FROM pg_statistic_ext
-JOIN pg_statistic_ext_data ON pg_statistic_ext.oid = pg_statistic_ext_data.stxoid
-WHERE stxname = 'stat_prod_mine_shaft';
+    schemaname,
+    statistics_name,
+    attnames,
+    kinds,
+    n_distinct,
+    dependencies
+FROM pg_stats_ext
+WHERE statistics_name = 'stat_prod_mine_shaft';
 
 -- ====================================================================
 -- ЗАДАНИЕ 4. ДУБЛИРУЮЩИЕСЯ ИНДЕКСЫ
@@ -206,7 +206,7 @@ SELECT pg_size_pretty(pg_relation_size('idx_prod_bloat_test')) AS size_after_rei
 
 UPDATE fact_production SET equipment_id = equipment_id WHERE date_id BETWEEN 20240101 AND 20240115;
 UPDATE fact_production SET equipment_id = equipment_id WHERE date_id BETWEEN 20240116 AND 20240131;
-REINDEX INDEX CONCURRENTLY idx_prod_bloat_test;
+REINDEX INDEX idx_prod_bloat_test;
 
 DROP INDEX IF EXISTS idx_prod_bloat_test;
 
@@ -230,7 +230,7 @@ CREATE INDEX idx_prod_equip_date_covering
 ON fact_production (equipment_id, date_id)
 INCLUDE (tons_mined, trips_count, operating_hours);
 
-VACUUM fact_production;
+ANALYZE fact_production;
 
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT date_id,
@@ -306,9 +306,9 @@ INCLUDE (equipment_id, duration_min, is_planned);
 CREATE INDEX idx_equip_status ON dim_equipment (status)
 INCLUDE (equipment_id, equipment_name, equipment_type_id);
 
-VACUUM fact_production;
-VACUUM fact_equipment_downtime;
-VACUUM dim_equipment;
+ANALYZE fact_production;
+ANALYZE fact_equipment_downtime;
+ANALYZE dim_equipment;
 
 EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 WITH production_data AS (
@@ -413,10 +413,10 @@ WHERE is_alarm = TRUE;
 CREATE INDEX idx_q4_ore_mine_date ON fact_ore_quality (mine_id, date_id)
 INCLUDE (fe_content, moisture);
 
-VACUUM fact_production;
-VACUUM fact_equipment_downtime;
-VACUUM fact_equipment_telemetry;
-VACUUM fact_ore_quality;
+ANALYZE fact_production;
+ANALYZE fact_equipment_downtime;
+ANALYZE fact_equipment_telemetry;
+ANALYZE fact_ore_quality;
 
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT p.date_id, SUM(p.tons_mined) AS daily_tons
