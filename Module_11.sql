@@ -1,9 +1,9 @@
 -- Установка схемы по умолчанию для создания объектов
-SET search_path TO Zelent, public;
+SET search_path TO "Zelent", public;
 
 -- Задание 1. Представление — сводка по добыче (простое)
--- Создание представления для ежедневных отчётов по добыче в схеме kond
-CREATE OR REPLACE VIEW kond.v_daily_production_summary AS
+-- Создание представления для ежедневных отчётов по добыче в схеме "Zelent"
+CREATE OR REPLACE VIEW "Zelent".v_daily_production_summary AS
 SELECT
     d.full_date,
     m.mine_name,
@@ -21,14 +21,14 @@ HAVING COUNT(*) > 0;
 
 -- Проверка представления: данные за март 2024, шахта «Северная»
 SELECT *
-FROM kond.v_daily_production_summary
+FROM "Zelent".v_daily_production_summary
 WHERE full_date BETWEEN '2024-03-01' AND '2024-03-31'
   AND mine_name LIKE '%Северная%'
 ORDER BY full_date, shift_name;
 
 -- Задание 2. Представление с ограничением обновления (простое)
--- Создание представления только для внеплановых простоев в схеме kond
-CREATE OR REPLACE VIEW kond.v_unplanned_downtime AS
+-- Создание представления только для внеплановых простоев в схеме "Zelent"
+CREATE OR REPLACE VIEW "Zelent".v_unplanned_downtime AS
 SELECT *
 FROM public.fact_equipment_downtime
 WHERE is_planned = FALSE
@@ -41,8 +41,8 @@ SELECT COUNT(*) AS total_downtime,
 FROM public.fact_equipment_downtime;
 
 -- Задание 3. Материализованное представление для качества руды (среднее)
--- Создание материализованного представления для кэширования данных о качестве руды в схеме kond
-CREATE MATERIALIZED VIEW IF NOT EXISTS kond.mv_monthly_ore_quality AS
+-- Создание материализованного представления для кэширования данных о качестве руды в схеме "Zelent"
+CREATE MATERIALIZED VIEW IF NOT EXISTS "Zelent".mv_monthly_ore_quality AS
 SELECT
     m.mine_name,
     TO_CHAR(d.full_date, 'YYYY-MM') AS year_month,
@@ -59,11 +59,11 @@ GROUP BY m.mine_name, TO_CHAR(d.full_date, 'YYYY-MM')
 ORDER BY m.mine_name, year_month;
 
 -- Обновление материализованного представления
-REFRESH MATERIALIZED VIEW kond.mv_monthly_ore_quality;
+REFRESH MATERIALIZED VIEW "Zelent".mv_monthly_ore_quality;
 
 -- Проверка материализованного представления
 SELECT *
-FROM kond.mv_monthly_ore_quality
+FROM "Zelent".mv_monthly_ore_quality
 ORDER BY mine_name, year_month;
 
 -- Задание 4. Производная таблица — ранжирование операторов (среднее)
@@ -120,8 +120,8 @@ WHERE m.status = 'active'
 ORDER BY availability_pct ASC;
 
 -- Задание 6. Табличная функция — отчёт по простоям (среднее)
--- Создание функции для получения отчёта по простоям оборудования в схеме kond
-CREATE OR REPLACE FUNCTION kond.get_equipment_downtime_report(
+-- Создание функции для получения отчёта по простоям оборудования в схеме "Zelent"
+CREATE OR REPLACE FUNCTION "Zelent".get_equipment_downtime_report(
     p_equipment_id INTEGER,
     p_start_date_id INTEGER,
     p_end_date_id INTEGER
@@ -156,17 +156,17 @@ $$ LANGUAGE plpgsql;
 
 -- Проверка функции: отчёт по простоям equipment_id=1 за январь 2024
 SELECT *
-FROM kond.get_equipment_downtime_report(1, 20240101, 20240131);
+FROM "Zelent".get_equipment_downtime_report(1, 20240101, 20240131);
 
 -- Задание 7. Рекурсивный CTE — иерархия локаций (сложное)
--- Создание таблицы для иерархии локаций в схеме kond (если не существует)
-CREATE TABLE IF NOT EXISTS kond.dim_location_hierarchy (
+-- Создание таблицы для иерархии локаций в схеме "Zelent" (если не существует)
+CREATE TABLE IF NOT EXISTS "Zelent".dim_location_hierarchy (
     location_id INTEGER PRIMARY KEY,
     location_name VARCHAR NOT NULL,
     parent_location_id INTEGER,
     level_m NUMERIC,
     location_type VARCHAR,
-    FOREIGN KEY (parent_location_id) REFERENCES kond.dim_location_hierarchy(location_id)
+    FOREIGN KEY (parent_location_id) REFERENCES "Zelent".dim_location_hierarchy(location_id)
 );
 
 -- Рекурсивный CTE для получения полной иерархии локаций
@@ -180,7 +180,7 @@ WITH RECURSIVE location_hierarchy AS (
         location_type,
         1 AS depth,
         location_name::TEXT AS path
-    FROM kond.dim_location_hierarchy
+    FROM "Zelent".dim_location_hierarchy
     WHERE parent_location_id IS NULL
 
     UNION ALL
@@ -194,7 +194,7 @@ WITH RECURSIVE location_hierarchy AS (
         lh.location_type,
         rh.depth + 1 AS depth,
         rh.path || ' → ' || lh.location_name AS path
-    FROM kond.dim_location_hierarchy lh
+    FROM "Zelent".dim_location_hierarchy lh
     JOIN location_hierarchy rh ON lh.parent_location_id = rh.location_id
 )
 SELECT
@@ -262,8 +262,8 @@ FROM daily_production
 ORDER BY date_id;
 
 -- Задание 10. Комплексное задание: VIEW + CTE + функция (продвинутое)
--- Создание представления для детализации качества руды в схеме kond
-CREATE OR REPLACE VIEW kond.v_ore_quality_detail AS
+-- Создание представления для детализации качества руды в схеме "Zelent"
+CREATE OR REPLACE VIEW "Zelent".v_ore_quality_detail AS
 SELECT
     q.quality_id,
     d.full_date,
@@ -286,8 +286,8 @@ JOIN public.dim_mine m ON q.mine_id = m.mine_id
 JOIN public.dim_shift sh ON q.shift_id = sh.shift_id
 LEFT JOIN public.dim_ore_grade g ON q.ore_grade_id = g.ore_grade_id;
 
--- Функция для получения сводки по качеству руды с использованием CTE в схеме kond
-CREATE OR REPLACE FUNCTION kond.get_ore_quality_summary(
+-- Функция для получения сводки по качеству руды с использованием CTE в схеме "Zelent"
+CREATE OR REPLACE FUNCTION "Zelent".get_ore_quality_summary(
     p_mine_id INTEGER DEFAULT NULL,
     p_start_date DATE DEFAULT NULL,
     p_end_date DATE DEFAULT NULL
@@ -304,7 +304,7 @@ BEGIN
     RETURN QUERY
     WITH filtered_data AS (
         SELECT *
-        FROM kond.v_ore_quality_detail v
+        FROM "Zelent".v_ore_quality_detail v
         WHERE (p_mine_id IS NULL OR v.mine_id = p_mine_id)
           AND (p_start_date IS NULL OR v.full_date >= p_start_date)
           AND (p_end_date IS NULL OR v.full_date <= p_end_date)
@@ -330,11 +330,11 @@ $$ LANGUAGE plpgsql;
 
 -- Проверка функции: сводка по качеству руды
 SELECT *
-FROM kond.get_ore_quality_summary();
+FROM "Zelent".get_ore_quality_summary();
 
 -- Проверка представления
 SELECT *
-FROM kond.v_ore_quality_detail
+FROM "Zelent".v_ore_quality_detail
 ORDER BY full_date DESC
 LIMIT 10;
 
