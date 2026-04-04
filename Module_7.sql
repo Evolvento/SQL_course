@@ -190,7 +190,7 @@ WHERE date_id = 20240315;
 
 DROP INDEX IF EXISTS idx_prod_date_cover;
 CREATE INDEX idx_prod_date_cover ON fact_production (date_id) INCLUDE (equipment_id, tons_mined);
-VACUUM fact_production;
+ANALYZE fact_production;
 
 EXPLAIN ANALYZE
 SELECT date_id, equipment_id, tons_mined
@@ -204,7 +204,7 @@ WHERE date_id = 20240315;
 
 DROP INDEX IF EXISTS idx_prod_date_cover_ext;
 CREATE INDEX idx_prod_date_cover_ext ON fact_production (date_id) INCLUDE (equipment_id, tons_mined, fuel_consumed_l);
-VACUUM fact_production;
+ANALYZE fact_production;
 
 EXPLAIN ANALYZE
 SELECT date_id, equipment_id, tons_mined, fuel_consumed_l
